@@ -68,7 +68,7 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
   }
 
   if (is.null(max_knots)) {
-    max_knots = length(xs);
+    max_knots = 4 * length(xs);
   }
 
   # Process max_knots.
@@ -201,7 +201,6 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
     # Make a birth, death, or move step
     u = runif(1);
     birth = FALSE;
-    skip = FALSE;
     death = FALSE;
     if (u <= bk && Z(model) > 0) {
       # Birth step
@@ -210,9 +209,8 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
 
       if (is.null(cs)) {
         # We cannot grow in this model
-        warning(paste("Birth step skipped because max_knots too low; ",
+        stop(paste("Birth step skipped because max_knots too low; ",
                       "consider increasing", sep=""));
-        skip = TRUE;
       }
       else {
         added = sample(cs, 1);
@@ -222,8 +220,7 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
         proposal$k = proposal$k + 1;
       }
     }
-    
-    if ((bk < u && u <= bk + dk) || (skip && u <= bk + dk)) {
+    else if (u <= bk + dk) {
       # Death step
       death = TRUE;
       delete = sample(proposal$knots, 1);
@@ -238,21 +235,29 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
       proposal$knots = knots;
       proposal$k = proposal$k - 1;
     }
-    else if (bk + dk < u || (skip && bk + dk < u)) {
+    else {
       # Move step
-      move = sample(proposal$knots, 1);
-      move_to = sample(candidates(proposal), 1);
+      cs = candidates(proposal);
 
-      # Remove the old knot
-      knots = c(move_to);
-      for (knot in proposal$knots) {
-        if (knot != move) {
-          knots = c(knots, knot);
-        }
+      if (is.null(cs)) {
+        stop(paste("Move step skipped because max_knots too low; ",
+                      "consider increasing", sep=""));
       }
+      else {
+        move = sample(proposal$knots, 1);
+        move_to = sample(cs, 1);
 
-      # Update the model parameters
-      proposal$knots = sort(knots);
+        # Remove the old knot
+        knots = c(move_to);
+        for (knot in proposal$knots) {
+          if (knot != move) {
+            knots = c(knots, knot);
+          }
+        }
+
+        # Update the model parameters
+        proposal$knots = sort(knots);
+      }
     }
 
     # Get the polynomial coefficients
@@ -279,8 +284,9 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
       model = proposal;
     }
 
-    # Draw sig_sq using a Gibbs step
     #
+    # Draw sig_sq using a Gibbs step
+    #                                    
     # We know that the full conditional distribution of sig_sq^{-1} is
     # Gamma
     #
