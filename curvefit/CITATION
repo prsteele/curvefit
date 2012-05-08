@@ -1,0 +1,12 @@
+bibentry(paste("@article{denison1998automatic,",
+               "title={Automatic Bayesian curve fitting},",
+               "author={Denison, DGT and Mallick, BK and Smith, AFM},",
+               "journal={Journal of the Royal Statistical Society: ",
+               "Series B (Statistical Methodology)},",
+               "volume={60},",
+               "number={2},",
+               "pages={333--350},",
+               "year={1998},",
+               "publisher={Wiley Online Library}",
+               sep="")
+       });
