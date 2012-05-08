@@ -1,14 +1,14 @@
-source("curvefit.r");
+library(curvefit)
 
-data(package="datasets")
+data(EuStockMarkets)
 
 x = 1:200
 y = EuStockMarkets[x, 1]
 
-fit = curvefit(y ~ x, list(y=y, x=x), prior_mean=10, mse_relative=10^-2)
+fit = curvefit(y ~ x, list(y=y, x=x), prior_mean=10, mse_relative=10^-2, diagnostics=TRUE)
 
-plot(x, curvefit.at(fit, x), type="l", color="red")
-points(x, y, type="l", color="blue");
+plot(x, curvefit.at(fit, x), type="l", col="red")
+points(x, y, type="l", col="blue");
 
 ## library(datasets)
 

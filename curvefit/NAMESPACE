@@ -1,1 +1,1 @@
-export(curvefit, curvefit.default, curvefit.print, curvefit.at);
+export(curvefit, curvefit.default, print.curvefit, curvefit.at);

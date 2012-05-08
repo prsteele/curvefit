@@ -7,5 +7,5 @@ Author: Patrick Steele
 Maintainer: Patrick Steele <prs233@cornell.edu>
 Description: A Bayesian curve fitting package.
 Depends: hash
-License: GPLv3
+License: GPL (>= 3)
 LazyLoad: yes

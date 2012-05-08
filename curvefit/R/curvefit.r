@@ -23,7 +23,7 @@ curvefit = function(x, ...) {
 
 curvefit.default = function(formula, data, prior_mean, max_knots=NULL, 
   c_param=.4, poly_deg=2, knot_continuity=1,
-  mse_relative=10^-3, mse_absolute=10^3, ...) {
+  mse_relative=10^-3, mse_absolute=10^3, diagnostics=FALSE, ...) {
   #
   # Data should be an S formula of the form y ~ x, where data$y is the
   # response to data$x.
@@ -169,6 +169,10 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
   # Initial sig_sq
   model$inv_sig_sq = max(10^-10, rgamma(1, shape=10^-3, scale=10^-3));
 
+  if (diagnostics) {
+    cat("Interior knots  MSE-absolute  MSE-relative\n");
+  }
+
   #
   # Main loop. We perform birth, death, and move steps until the
   # mean-squared error of the model reaches a steady state. We define
@@ -304,18 +308,17 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
       mses = c(mses, mse);
     }
 
-    avg = 0;
-    # Check the halting condition
-    if (length(mses) >= nterms && mse < mse_absolute) {
-      avg = mean(mses);
-      if (abs((avg - mse) / avg) <= mse_relative) {
-        halt = TRUE;
-      }
+    # Check the relative and absolute MSE for the halting condition
+    relative = abs(mean(mses) - mse) / mean(mses);
+    absolute = mse;
+    if (length(mses) >= nterms && relative <= mse_relative
+        && absolute <= mse_absolute) {
+      halt = TRUE;
     }
-    
-    print(paste(mse, model$k, model$inv_sig_sq, (avg - mse) / avg));
 
-    #print(paste(mse, model$inv_sig_sq, model$k));
+    if (diagnostics) {
+      cat(paste(model$k, "  ", absolute, "  ", relative, "\n", sep=""));
+    }
 
     # Update the iteration count
     niters = niters + 1;
@@ -336,37 +339,42 @@ curvefit.at = function(model, x) {
 
   for (pt in x) {
     res = 0;
-    for (n in 0 : model$l) {
-      r = model$locations[1];
-      if (pt >= r) {
-        coef = model$coef[[coef_name(n, 0)]];
-        if (is.na(coef)) {
-          coef = 0;
-        }
 
+    if (pt > model$locations[length(model$locations)]) {
+      res = 0
+    }
+    else {
+      for (n in 0 : model$l) {
+        r = model$locations[1];
         if (pt >= r) {
-          res = res + coef * (pt - r)^n;
+          coef = model$coef[[coef_name(n, 0)]];
+          if (is.na(coef)) {
+            coef = 0;
+          }
+
+          if (pt >= r) {
+            res = res + coef * (pt - r)^n;
+          }
         }
       }
-    }
 
-    m = 1;
-    while (m <= model$k) {
-      r = model$locations[model$knots[m]];
-      n = model$l0;
-      while (n <= model$l) {
-        coef = model$coef[[coef_name(n, m)]];
-        if (is.na(coef)) {
-          coef = 0;
+      m = 1;
+      while (m <= model$k) {
+        r = model$locations[model$knots[m]];
+        n = model$l0;
+        while (n <= model$l) {
+          coef = model$coef[[coef_name(n, m)]];
+          if (is.na(coef)) {
+            coef = 0;
+          }
+          if (pt > r) {
+            res = res + coef * (pt - r)^n;
+          }
+          n = n + 1;
         }
-        if (pt > r) {
-          res = res + coef * (pt - r)^n;
-        }
-        n = n + 1;
+        m = m + 1;
       }
-      m = m + 1;
     }
-
     ret = c(ret, res);
   }
 

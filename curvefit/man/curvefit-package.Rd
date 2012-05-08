@@ -18,9 +18,9 @@ License: \tab GPLv3\cr
 LazyLoad: \tab yes\cr
 }
 
-~~The function curvefit fits a piecewise polynomial to data. The
+The function curvefit fits a piecewise polynomial to data. The
 function `curvefit.at' is used to evaluate the fitted function at
-specified values.~~
+specified values.
 
 }
 \usage{
@@ -28,9 +28,9 @@ curvefit(formula, data, ...)
 
 \method{curvefit}{default}(formula, data, prior_mean,
 max_knots=length(data), c_param=.4, poly_deg=2, knot_continuity=1,
-mse_relative=10^-3, mse_absolute=10^3, ...)
+mse_relative=10^-3, mse_absolute=10^3, diagnostics=FALSE, ...)
 \method{curvefit}{print}(fit, ...)
-\method{cirvefit}{at}(fit, x, ...)
+\method{curvefit}{at}(fit, x, ...)
 }
 \arguments{
   \item{formula}{ a formula specifying the predictor and response
@@ -61,6 +61,9 @@ mse_relative=10^-3, mse_absolute=10^3, ...)
   \item{mse_absolute}{ the absolute mean-squared error required to
 	halt. Decrease to improve fit, at the expense of running time. }
 
+  \item{diagnostics}{ if TRUE, prints out diagnostics as the fit
+	runs. Can be useful to see how fast a fit is converging. }
+
   \item{fit}{ a curvefit object. }
 
   \item{x}{ a vector of values to evaluate the fit at. }
@@ -84,23 +87,22 @@ mse_relative=10^-3, mse_absolute=10^3, ...)
 \author{
 Patrick Steele
 
-Maintainer: ~~ Patrick Steele, <prs233@cornell.edu> ~~
+Maintainer: Patrick Steele, <prs233@cornell.edu>
 
 }
 \references{
-~~ "Automatic Bayesian curve fitting", Denison et al. ~~
+"Automatic Bayesian curve fitting", Denison et al., 1998
 }
-~~ Optionally other standard keywords, one per line, from file KEYWORDS in ~~
-~~ the R documentation directory ~~
+
 \keyword{ regression }
 
 \examples{
-data(package="datasets")
+# data(EuStockMarkets
 
-x = 1:200
-y = EuStockMarket[x, 1]
+# x = 1:200
+# y = EuStockMarkets[x, 1]
 
-fit = curvefit(y ~ x, list(y=y, x=x), prior_mean=10)
+# fit = curvefit(y ~ x, list(y=y, x=x), prior_mean=10)
 
-plot(x, fit.at(fit, x))
+# plot(x, fit.at(fit, x))
 }
