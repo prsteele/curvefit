@@ -28,7 +28,7 @@ curvefit(formula, data, ...)
 
 \method{curvefit}{default}(formula, data, prior_mean,
 max_knots=length(data), c_param=.4, poly_deg=2, knot_continuity=1,
-mse_relative=10^-3, mse_absolute=10^3, diagnostics=FALSE, ...)
+mse_relative=10^-3, mse_absolute=10^3, burnin=10, diagnostics=FALSE, ...)
 \method{curvefit}{print}(fit, ...)
 \method{curvefit}{at}(fit, x, ...)
 }
@@ -60,6 +60,9 @@ mse_relative=10^-3, mse_absolute=10^3, diagnostics=FALSE, ...)
 
   \item{mse_absolute}{ the absolute mean-squared error required to
 	halt. Decrease to improve fit, at the expense of running time. }
+
+  \item{burnin}{ minimum number of iterations we require before testing
+  for absolute and relative halting conditions. }
 
   \item{diagnostics}{ if TRUE, prints out diagnostics as the fit
 	runs. Can be useful to see how fast a fit is converging. }

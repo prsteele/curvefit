@@ -23,7 +23,7 @@ curvefit = function(x, ...) {
 
 curvefit.default = function(formula, data, prior_mean, max_knots=NULL, 
   c_param=.4, poly_deg=2, knot_continuity=1,
-  mse_relative=10^-3, mse_absolute=10^3, diagnostics=FALSE, ...) {
+  mse_relative=10^-3, mse_absolute=10^3, burnin=10, diagnostics=FALSE, ...) {
   #
   # Data should be an S formula of the form y ~ x, where data$y is the
   # response to data$x.
@@ -68,7 +68,7 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
   }
 
   if (is.null(max_knots)) {
-    max_knots = 4 * length(xs);
+    max_knots = length(xs);
   }
 
   # Process max_knots.
@@ -151,7 +151,7 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
   rand = get_rand_gen(length(locations) - 2 * poly_deg - 2,
     k0, poly_deg + 1);
   selection = rand() + poly_deg + 1;
-
+  
   # The current model
   model = list();
   model$k = length(selection);
@@ -179,7 +179,6 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
   # 'steady state' to be when the moving average of the change in MSE
   # falls below some absolute level.
   #
-  nterms = 10;
   mses = c();
   niters = 0;
   halt = FALSE
@@ -210,7 +209,7 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
       if (is.null(cs)) {
         # We cannot grow in this model
         stop(paste("Birth step skipped because max_knots too low; ",
-                      "consider increasing", sep=""));
+                   "consider increasing", sep=""));
       }
       else {
         added = sample(cs, 1);
@@ -241,7 +240,7 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
 
       if (is.null(cs)) {
         stop(paste("Move step skipped because max_knots too low; ",
-                      "consider increasing", sep=""));
+                   "consider increasing.", sep=""));
       }
       else {
         move = sample(proposal$knots, 1);
@@ -307,7 +306,7 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
     mse = mse / length(xs);
 
     # Add the mse to the list of the last severals mses
-    if (length(mses) == nterms) {
+    if (length(mses) == burnin) {
       mses = c(mses[2:length(mses)], mse);
     }
     else {
@@ -317,7 +316,7 @@ curvefit.default = function(formula, data, prior_mean, max_knots=NULL,
     # Check the relative and absolute MSE for the halting condition
     relative = abs(mean(mses) - mse) / mean(mses);
     absolute = mse;
-    if (length(mses) >= nterms && relative <= mse_relative
+    if (length(mses) >= burnin && relative <= mse_relative
         && absolute <= mse_absolute) {
       halt = TRUE;
     }
@@ -401,7 +400,7 @@ print.curvefit = function(x, ...) {
 # Utility methods
 #
 
-get_rand_gen= function(n, k, l) {
+get_rand_gen = function(n, k, l) {
   #
   # Returns a function that will return a random selection of k elements
   # from n elements, where each element is at least l from each other.
@@ -423,19 +422,12 @@ get_rand_gen= function(n, k, l) {
     }
   };
 
-  #
-  # Count the number of ways to select k elements from n, with spacing
-  # l. Use the memo hashtable for memoization.
-  #
   memo = hash();
-  count = function(n, k) {
-    key = to_key(c(n, k));
-    if (has.key(key, memo)) {
-      return(memo[[key]]);
-    }
 
+  count = function (n, k) {
     # Choosing k elements with l elements between them requires at
-    # least (k - 1) * (l + 1) + 1 elements
+    # least (k - 1) * (l + 1) + 1 elements. Should only be called on
+    # (n, k) pairs that the dynamic program has solved.
     if ((k - 1) * (l + 1) + 1 > n) {
       return(0);
     }
@@ -451,20 +443,42 @@ get_rand_gen= function(n, k, l) {
     else if (k == 1) {
       return(n);
     }
-
     else {
       # We can either choose the first element, or not
-      choose_first = count(n - 1 - l, k - 1);
-      choose_other = count(n - 1, k);
-      res = choose_first + choose_other;
-      memo[key] = res;
-      return(res);
+      return(memo[[to_key(c(n, k))]]);
+    }
+  };
+
+  for (i in 0:k) {
+    for (j in 0:n) {
+      key = to_key(c(j, i));
+      
+      if ((i - 1) * (l + 1) + 1 > j) {
+        memo[key] = 0;
+      }
+      else if ((i - 1) * (l + 1) + 1 == j) {
+        memo[key] = 1;
+      }
+      else if (i == 0) {
+        memo[key] = 1;
+      }
+      else if (j < 0) {
+        memo[key] = 0;
+      }
+      else if (i == 1) {
+        memo[key] = j;
+      }
+      else {
+        choose_first = count(j - 1 - l, i - 1);
+        choose_other = count(j - 1, i);
+        memo[key] = choose_first + choose_other;
+      }
     }
   }
-  the_count = count(n, k);
-  
-  # Pick a random selection
 
+  the_count = count(n, k);
+
+  # Pick a random selection
   rand = function() {
 
     ndx = floor(runif(1) * (the_count + 1));
@@ -490,10 +504,9 @@ get_rand_gen= function(n, k, l) {
         i = i + 1;
       }
     }
-
     return(result);
   }
-  
+
   return(rand);
 };
 
@@ -574,7 +587,7 @@ get_ls_data = function(model, xs, ys) {
   data$y = ys;
 
   return(data);
-}
+};
 
 #
 # Returns the name of the independent variable we create for
@@ -582,4 +595,4 @@ get_ls_data = function(model, xs, ys) {
 #
 coef_name = function(n, m) {
   return(paste("x_", n, "_", m, sep=""));
-}
+};
